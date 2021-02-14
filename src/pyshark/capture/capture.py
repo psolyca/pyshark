@@ -152,6 +152,7 @@ class Capture(object):
         """Sets up a new eventloop as the current one according to the OS."""
         if os.name == "nt":
             self.eventloop = asyncio.ProactorEventLoop()
+            asyncio.set_event_loop(self.eventloop)
         else:
             try:
                 self.eventloop = asyncio.get_event_loop()
@@ -418,6 +419,7 @@ class Capture(object):
         if process.returncode is None:
             try:
                 process.kill()
+                self._running_processes.remove(process)
                 return await asyncio.wait_for(process.wait(), 1)
             except asyncTimeoutError:
                 self._log.debug("Waiting for process to close failed, may have zombie process.")
@@ -439,6 +441,7 @@ class Capture(object):
         for process in self._running_processes.copy():
             await self._cleanup_subprocess(process)
         self._running_processes.clear()
+        await asyncio.sleep(0)
 
     def __del__(self):
         if self._running_processes:
